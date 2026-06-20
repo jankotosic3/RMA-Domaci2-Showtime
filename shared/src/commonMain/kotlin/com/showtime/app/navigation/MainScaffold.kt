@@ -1,17 +1,13 @@
 package com.showtime.app.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -25,6 +21,9 @@ import com.showtime.app.feature.catalog.CatalogScreen
 import com.showtime.app.feature.detail.DetailScreen
 import com.showtime.app.feature.library.FavoritesScreen
 import com.showtime.app.feature.library.WatchlistScreen
+import com.showtime.app.feature.profile.ProfileScreen
+import com.showtime.app.feature.quiz.QuizResultScreen
+import com.showtime.app.feature.quiz.QuizScreen
 import kotlin.reflect.KClass
 
 private data class Tab(val route: Any, val routeClass: KClass<*>, val label: String, val icon: String)
@@ -77,8 +76,32 @@ fun MainScaffold(navController: NavHostController = rememberNavController()) {
             composable<Watchlist> {
                 WatchlistScreen(onMovieClick = { navController.navigate(Detail(it)) })
             }
-            composable<Quiz> { Placeholder("Quiz") }
-            composable<Profile> { Placeholder("Profile") }
+            composable<Quiz> {
+                QuizScreen(
+                    onFinished = { score, correct, wrong, used ->
+                        // Replace the Quiz entry so Back from the result returns to Catalog.
+                        navController.navigate(QuizResult(score, correct, wrong, used)) {
+                            popUpTo(Quiz) { inclusive = true }
+                        }
+                    },
+                    onAbandon = { navController.popBackStack() }
+                )
+            }
+            composable<QuizResult> { entry ->
+                val result = entry.toRoute<QuizResult>()
+                QuizResultScreen(
+                    score = result.score,
+                    correct = result.correct,
+                    wrong = result.wrong,
+                    usedSeconds = result.usedSeconds,
+                    onPlayAgain = {
+                        // Fresh Quiz entry (new ViewModel) in place of the result.
+                        navController.navigate(Quiz) { popUpTo(QuizResult) { inclusive = true } }
+                    },
+                    onDone = { navController.popBackStack() }
+                )
+            }
+            composable<Profile> { ProfileScreen() }
             composable<Detail> { entry ->
                 val detail = entry.toRoute<Detail>()
                 DetailScreen(movieId = detail.movieId, onBack = { navController.popBackStack() })
@@ -89,16 +112,3 @@ fun MainScaffold(navController: NavHostController = rememberNavController()) {
 
 private fun androidx.navigation.NavDestination.hierarchyHasRoute(routeClass: KClass<*>): Boolean =
     hierarchy.any { it.hasRoute(routeClass) }
-
-// Temporary content for destinations whose features arrive in later steps.
-@Composable
-private fun Placeholder(name: String) {
-    Column(
-        Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(name, style = MaterialTheme.typography.headlineSmall)
-        Text("Coming in a later step", style = MaterialTheme.typography.bodyMedium)
-    }
-}

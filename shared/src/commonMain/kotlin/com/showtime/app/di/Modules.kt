@@ -12,6 +12,7 @@ import com.showtime.app.data.repository.AuthRepository
 import com.showtime.app.data.repository.LibraryRepository
 import com.showtime.app.data.repository.MovieDetailRepository
 import com.showtime.app.data.repository.MoviesRepository
+import com.showtime.app.data.repository.QuizRepository
 import com.showtime.app.data.local.db.ShowtimeDatabase
 import com.showtime.app.feature.auth.AuthLandingStore
 import com.showtime.app.feature.auth.LoginStore
@@ -20,6 +21,9 @@ import com.showtime.app.feature.catalog.CatalogStore
 import com.showtime.app.feature.detail.DetailStore
 import com.showtime.app.feature.library.FavoritesStore
 import com.showtime.app.feature.library.WatchlistStore
+import com.showtime.app.feature.profile.ProfileStore
+import com.showtime.app.feature.quiz.QuizGenerator
+import com.showtime.app.feature.quiz.QuizStore
 import de.jensklingenberg.ktorfit.Ktorfit
 import de.jensklingenberg.ktorfit.ktorfit
 import io.ktor.client.HttpClient
@@ -52,6 +56,11 @@ val dataModule = module {
     single { MoviesRepository(get(), get()) }
     single { MovieDetailRepository(get(), get()) }
     single { LibraryRepository(get(), get<ShowtimeDatabase>().libraryDao(), get<ShowtimeDatabase>().movieDao()) }
+    single { QuizRepository(get(), get(), get()) }
+    // QuizGenerator lives in the feature layer (testable with a seeded Random); it reads the
+    // local pool from Room. Injected into QuizStore rather than the repo to keep data → feature
+    // dependencies one-directional.
+    factory { QuizGenerator(get()) }
 }
 
 // Feature view-models are appended here as each feature lands (Steps 8–15).
@@ -63,6 +72,8 @@ val featureModule = module {
     viewModel { (movieId: String) -> DetailStore(get(), get(), movieId) }
     viewModel { FavoritesStore(get()) }
     viewModel { WatchlistStore(get()) }
+    viewModel { QuizStore(get(), get()) }
+    viewModel { ProfileStore(get(), get(), get()) }
 }
 
 fun appModules() = listOf(dataModule, featureModule)

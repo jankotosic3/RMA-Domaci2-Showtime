@@ -31,3 +31,6 @@ object Profile
 // Pushed on top of the main graph
 @Serializable
 data class Detail(val movieId: String)
+
+@Serializable
+data class QuizResult(val score: Float, val correct: Int, val wrong: Int, val usedSeconds: Int)
